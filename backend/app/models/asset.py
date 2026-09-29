@@ -4,9 +4,13 @@ from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING
 
 from ..config import ALLOWED_ACCESS_LEVELS, ALLOWED_ASSET_TYPES, ALLOWED_PROCESSING_STATUSES
 from ..db import Base
+
+if TYPE_CHECKING:
+    from .evidence import EvidencePassage
 
 
 def utcnow() -> datetime:
@@ -96,6 +100,12 @@ class AssetVersion(Base):
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
 
     asset: Mapped[Asset] = relationship(back_populates="versions")
+    passages: Mapped[list["EvidencePassage"]] = relationship(
+        back_populates="asset_version",
+        cascade="all, delete-orphan",
+        order_by="EvidencePassage.sequence_number",
+        lazy="noload",
+    )
 
     __table_args__ = (
         UniqueConstraint("asset_id", "version_number", name="uq_asset_version_number"),

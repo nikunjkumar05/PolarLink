@@ -32,5 +32,6 @@ def get_db() -> Iterator[Session]:
 
 def init_db() -> None:
     from . import models  # noqa: F401
+    from .migrations import ensure_schema
 
-    Base.metadata.create_all(engine)
+    ensure_schema(engine)

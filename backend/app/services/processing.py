@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from ..db import SessionLocal
-from ..models import AssetVersion
+from ..models import AssetVersion, EvidencePassage
+from . import extract as extractor
+from .storage import resolve_stored
 
 log = logging.getLogger(__name__)
 
@@ -13,16 +15,47 @@ TERMINAL_STATUSES = ("DONE", "FAILED")
 
 
 def process_version(version_id: int) -> None:
-    """FR-06 placeholder — records the outcome for a newly stored version.
+    """FR-06 — extract page-aware text and emit EvidencePassage rows.
 
-    Text extraction itself lands with the document-processing module; until then
-    the version is marked DONE so the repository flow stays usable end to end.
+    Runs off the request thread (NFR-02). The original file is never modified;
+    a failure marks the version FAILED and leaves the upload intact (NFR-03).
     """
     db = SessionLocal()
     try:
         version = db.get(AssetVersion, version_id)
         if version is None:
             return
+        version.processing_status = "PROCESSING"
+        db.commit()
+
+        path = resolve_stored(version.file_path)
+        result = extractor.extract(path, version.mime_type, version.original_filename)
+        chunks = extractor.chunk_pages(result.pages)
+
+        # Reprocessing replaces passages; the source version itself is untouched.
+        db.execute(
+            delete(EvidencePassage).where(EvidencePassage.asset_version_id == version.id)
+        )
+        db.add_all(
+            EvidencePassage(
+                asset_version_id=version.id,
+                asset_id=version.asset_id,
+                sequence_number=index,
+                location_type="PAGE" if chunk.page_number else "TEXT",
+                content=chunk.text,
+                page_number=chunk.page_number,
+                start_offset=chunk.start_offset,
+                end_offset=chunk.end_offset,
+                char_count=len(chunk.text),
+            )
+            for index, chunk in enumerate(chunks)
+        )
+
+        version.page_count = max(
+            (page.page_number for page in result.pages if page.page_number), default=0
+        ) or None
+        version.passage_count = len(chunks)
+        version.processing_note = result.warning
         version.processing_status = "DONE"
         version.processing_error = None
         db.commit()
