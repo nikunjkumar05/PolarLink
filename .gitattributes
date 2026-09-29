@@ -1,0 +1,5 @@
+# A PDF's xref table stores byte offsets, so CRLF conversion on checkout
+# would corrupt it. Keep sample and stored documents byte-identical.
+*.pdf binary
+*.png binary
+*.docx binary
