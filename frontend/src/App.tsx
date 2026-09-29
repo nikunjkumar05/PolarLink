@@ -2,6 +2,7 @@ import { NavLink, Route, Routes } from 'react-router-dom'
 import Repository from './pages/Repository'
 import Upload from './pages/Upload'
 import AssetDetail from './pages/AssetDetail'
+import Search from './pages/Search'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
             Repository
           </NavLink>
           <NavLink to="/upload">Upload</NavLink>
+          <NavLink to="/search">Search</NavLink>
         </nav>
       </header>
 
@@ -26,6 +28,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Repository />} />
           <Route path="/upload" element={<Upload />} />
+          <Route path="/search" element={<Search />} />
           <Route path="/assets/:id" element={<AssetDetail />} />
         </Routes>
       </main>

@@ -6,6 +6,8 @@ import type {
   FilterOptions,
   ListParams,
   PassageList,
+  SearchParams,
+  SearchResponse,
 } from '../types'
 
 export class ApiError extends Error {
@@ -88,6 +90,18 @@ export const api = {
   },
 
   listPages: (versionId: number) => request<number[]>(`/api/versions/${versionId}/pages`),
+
+  search: (params: SearchParams = {}) => {
+    const search = new URLSearchParams()
+    search.set('q', params.q ?? '')
+    search.set('mode', params.mode ?? 'hybrid')
+    if (params.limit) search.set('limit', String(params.limit))
+    for (const key of ['asset_type', 'expedition', 'station', 'topic', 'access_level'] as const) {
+      for (const value of params[key] ?? []) search.append(key, value)
+    }
+    for (const value of params.year ?? []) search.append('year', String(value))
+    return request<SearchResponse>(`/api/search?${search.toString()}`)
+  },
 
   reprocess: (versionId: number) =>
     request<AssetVersion>(`/api/versions/${versionId}/reprocess`, { method: 'POST' }),

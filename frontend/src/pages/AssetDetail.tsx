@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type { Asset, AssetVersion } from '../types'
 import { formatDate, formatBytes, shortHash } from '../lib/format'
@@ -29,6 +29,11 @@ export default function AssetDetail() {
   const [note, setNote] = useState('')
   const [flash, setFlash] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+
+  // FR-14 — arriving from a search result deep-links the exact passage.
+  const [searchParams] = useSearchParams()
+  const targetVersionId = Number(searchParams.get('v')) || undefined
+  const targetPassageId = Number(searchParams.get('passage')) || undefined
 
   const load = useCallback(() => setReloadKey((key) => key + 1), [])
 
@@ -300,7 +305,13 @@ export default function AssetDetail() {
         </section>
       </div>
 
-      <EvidencePanel assetId={asset.id} versions={versions} onChange={load} />
+      <EvidencePanel
+        assetId={asset.id}
+        versions={versions}
+        onChange={load}
+        initialVersionId={targetVersionId}
+        highlightId={targetPassageId}
+      />
     </div>
   )
 }

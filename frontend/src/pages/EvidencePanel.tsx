@@ -8,10 +8,20 @@ interface Props {
   assetId: number
   versions: AssetVersion[]
   onChange: () => void
+  initialVersionId?: number
+  highlightId?: number
 }
 
-export default function EvidencePanel({ assetId, versions, onChange }: Props) {
-  const [versionId, setVersionId] = useState<number>(versions.at(-1)?.id ?? 0)
+export default function EvidencePanel({
+  assetId,
+  versions,
+  onChange,
+  initialVersionId,
+  highlightId,
+}: Props) {
+  const [versionId, setVersionId] = useState<number>(
+    initialVersionId ?? versions.at(-1)?.id ?? 0,
+  )
   const [items, setItems] = useState<EvidencePassage[]>([])
   const [total, setTotal] = useState(0)
   const [query, setQuery] = useState('')
@@ -59,6 +69,9 @@ export default function EvidencePanel({ assetId, versions, onChange }: Props) {
         setItems(result.items)
         setTotal(result.total)
         setPages(pageList)
+        if (highlightId && result.items.some((item) => item.id === highlightId)) {
+          setOpenId(highlightId)
+        }
         setError(null)
       } catch (err) {
         if (cancelled) return
@@ -72,7 +85,15 @@ export default function EvidencePanel({ assetId, versions, onChange }: Props) {
     return () => {
       cancelled = true
     }
-  }, [version, debounced, pageNumber, reloadKey])
+  }, [version, debounced, pageNumber, reloadKey, highlightId])
+
+  // Bring a deep-linked passage (FR-14) into view once its list has rendered.
+  useEffect(() => {
+    if (!highlightId || loading) return
+    const node = document.getElementById(`passage-${highlightId}`)
+    if (!node) return
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [highlightId, loading, items])
 
   // Poll while the selected version is still being processed (FR-06 is async).
   useEffect(() => {
@@ -202,7 +223,17 @@ export default function EvidencePanel({ assetId, versions, onChange }: Props) {
         {items.map((passage) => {
           const open = openId === passage.id
           return (
-            <li key={passage.id} className={open ? 'passage open' : 'passage'}>
+            <li
+              key={passage.id}
+              id={`passage-${passage.id}`}
+              className={[
+                'passage',
+                open ? 'open' : '',
+                highlightId === passage.id ? 'highlight' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
               <button
                 className="passage-head"
                 onClick={() => setOpenId(open ? null : passage.id)}

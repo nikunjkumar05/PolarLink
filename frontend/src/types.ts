@@ -107,3 +107,44 @@ export interface ListParams {
   page?: number
   page_size?: number
 }
+
+export type SearchMode = 'hybrid' | 'keyword' | 'semantic'
+
+export interface SearchParams extends ListParams {
+  mode?: SearchMode
+  limit?: number
+}
+
+export interface SearchIndex {
+  keyword_ready: boolean
+  keyword_rows: number
+  total_passages: number
+  embedded_passages: number
+  embedding_model: string | null
+  embedding_ready: boolean
+  embedding_error: string | null
+}
+
+export interface SearchHit {
+  rank: number
+  score: number
+  sources: string[]
+  keyword_rank: number | null
+  semantic_rank: number | null
+  keyword_score: number | null
+  semantic_score: number | null
+  passage: EvidencePassage
+  asset: Asset
+  version: { id: number; version_number: number }
+}
+
+export interface SearchResponse {
+  query: string
+  mode: SearchMode
+  took_ms: number
+  total: number
+  limit: number
+  items: SearchHit[]
+  index: SearchIndex
+  note: string | null
+}
