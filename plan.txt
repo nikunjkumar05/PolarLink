@@ -1,0 +1,127 @@
+Below is a four-week implementation plan, assuming your team can work consistently after tomorrow’s idea submission. This is a planning estimate, not an official SIH schedule.
+1. What to prepare tonight for tomorrow’s submission
+Spend the next few focused hours on these deliverables:
+Deliverable	What it should contain
+Problem explanation	How research material becomes searchable, usable outreach content
+Proposed solution	Archive, search, content generation, review and source-update tracking
+Architecture	The workflow below and your chosen stack
+Three screen mockups	Repository, content editor with citations, source-change review
+Validation plan	How you will measure retrieval quality, factual support and time saved
+Team responsibilities	Named owners for the six roles below
+
+
+NCPOR already has an online library and expedition directory. Explain how your proposed workflow adds value to those resources. www.ncpor.res.in
+2. Fix the product scope
+Build these six screens:
+1. Repository: browse assets by topic, expedition, station, year and format.
+2. Upload: add files, metadata, attribution and access settings.
+3. Search: find relevant material and open the supporting page or segment.
+4. Outreach editor: generate and edit a website article or social-media draft.
+5. Review queue: inspect claims and evidence, then approve or return for correction.
+6. Published content: display approved articles and flag those requiring review after source changes.
+For social media, start with copy/download of approved content. Direct platform integrations can come later.
+
+3. Use one practical stack
+Component	Recommended choice	Purpose
+Frontend	React + Vite	Repository, editor and review interfaces
+Backend	Python + FastAPI	APIs, permissions and workflow
+Database	PostgreSQL + pgvector	Metadata, relationships and semantic search
+File storage	Local persistent volume initially	Preserve original files and their versions
+Document processing	Docling	PDF structure, text, tables and OCR
+Background processing	Celery + Redis	Process documents without blocking uploads
+Retrieval	Sentence Transformers + keyword search	Find relevant evidence
+Generation	One configurable LLM provider	Produce structured, source-linked drafts
+
+
+Docling supports document parsing and OCR; pgvector adds vector search to PostgreSQL. Sentence Transformers documents a retrieval-and-reranking approach you can adopt when basic retrieval works. Docling
+Use pretrained models initially. Your early engineering effort should go into data quality, retrieval and evaluation.
+4. Days 1–3: build the archive
+Start with a small, carefully checked collection:
+- A few permitted expedition reports and publications.
+- Photographs with accurate captions and attribution.
+- Short videos with supplied transcripts.
+- A sample scientific dataset.
+- Institutional activity records.
+The NCPOR reports page provides a concrete starting point. Check access and reuse conditions for each selected asset. ncpor.res.in
+Implement storage, metadata editing, previews, downloads and upload-processing status.
+Asset type	Initial support
+PDFs	Extract text with page references; OCR scanned pages
+Images	Preview, caption, attribution and metadata search
+Videos	Playback, transcript search and timestamp links
+Datasets	Preserve original file; provide CSV preview where applicable
+Activities	Structured records linked to related media
+
+
+Completion check: another teammate can upload, find and open each supported asset type.
+5. Days 4–7: make search useful
+Implement keyword search first, then semantic retrieval.
+The retrieval sequence should be:
+1. Apply access restrictions and selected filters.
+2. Retrieve candidate passages using keywords and embeddings.
+3. Combine and rank the results.
+4. Return passages with their document version and location.
+5. Open the cited page or timestamp when clicked.
+Store evidence carefully from the beginning:
+asset → immutable version → evidence passage → generated claim → draft revision
+For a PDF, evidence includes the page and passage. For a video, it includes the transcript interval. For a dataset, it includes the relevant table/column/row reference where applicable.
+Completion check: every search result opens the correct source location. Start recording failures in a shared evaluation sheet.
+6. Week 2: build generation and review
+Support two formats initially:
+- A short website article.
+- A social-media draft.
+Provide a choice of audience, such as school students or the general public.
+Generate a structured response containing:
+- Draft text.
+- Individual factual claims.
+- Supporting evidence IDs for those claims.
+- Missing evidence or unresolved questions.
+The backend should reject nonexistent evidence IDs. That check confirms references exist; it does not prove the cited passage supports the claim. Reviewers must be able to inspect both side by side.
+Build this workflow:
+Draft → Submitted for review → Changes requested / Approved → Published
+Approval should apply to a specific draft revision. Editing an approved draft should require another review.
+Add simple checks for numbers, units, dates and locations. Display suspected mismatches to the reviewer rather than treating an automated checker as infallible.
+Completion check: a teammate can generate, correct, approve and publish an article while following its citations.
+7. Week 3: implement source-update tracking
+This is your proposed distinguishing feature.
+When a source changes:
+1. Preserve the old version.
+2. Create a new version with a file hash and timestamp.
+3. Find drafts and publications citing the old version.
+4. Mark them “Source updated—review required.”
+5. Show old and new evidence to the reviewer.
+6. Re-index the new version while preserving historical citations.
+Start conservatively: flag all content linked to the changed document.
+Then improve precision by matching sections or paragraphs across versions and flagging claims linked to changed passages. Build this second step only after the conservative workflow works reliably.
+Use a clearly labelled test document for the correction demonstration.
+Completion check: updating a source reliably finds linked content without deleting its previous evidence.
+8. Divide ownership across all six members
+Member	Primary responsibility	First deliverable
+1	Repository and search frontend	Browse, filter and source-view screens
+2	Outreach editor and review frontend	Editable draft with evidence panel
+3	Backend, database and permissions	Asset/version APIs and workflow states
+4	Ingestion and document processing	Extracted passages with correct locations
+5	Retrieval and generation	Search results and structured draft output
+6	Evaluation, integration and deployment	Test corpus, benchmark questions and running deployment
+
+
+On day one, agree on database fields and API request/response formats. Integrate daily so the team always has one functioning application.
+9. Week 4: evaluate and prepare the demonstration
+Prepare a small labelled benchmark—for example, 50 questions, including 10 that the collection cannot answer. Keep some questions untouched until final testing.
+Measure	What to check
+Retrieval quality	Does the correct supporting passage appear among the top results?
+Citation correctness	Does the passage actually support the generated claim?
+Unsupported questions	Does the system acknowledge missing evidence?
+Update detection	Does it flag affected content, and how often does it over-flag?
+Editorial effort	How many factual corrections are required per draft?
+Time saved	How long does the same task take manually versus with your system?
+
+
+Use human-labelled answers and reviews as your reference. Report measured results, including failures.
+For the final demo, show one connected story:
+1. Upload a report and related media.
+2. Find evidence for an outreach topic.
+3. Generate a draft and inspect its sources.
+4. Approve and publish it.
+5. Upload a revised test source.
+6. Show the affected content entering the review queue.
+Your first coding milestone is small: one PDF uploaded, one relevant passage retrieved, and one generated sentence linked to the correct page. Once that works end to end, expand the formats and workflo
