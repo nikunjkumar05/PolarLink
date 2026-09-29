@@ -7,6 +7,7 @@ from sqlalchemy import delete, select
 from ..db import SessionLocal
 from ..models import AssetVersion, EvidencePassage
 from . import extract as extractor
+from . import index as indexer
 from .storage import resolve_stored
 
 log = logging.getLogger(__name__)
@@ -33,10 +34,11 @@ def process_version(version_id: int) -> None:
         chunks = extractor.chunk_pages(result.pages)
 
         # Reprocessing replaces passages; the source version itself is untouched.
+        indexer.clear_version(db, version.id)
         db.execute(
             delete(EvidencePassage).where(EvidencePassage.asset_version_id == version.id)
         )
-        db.add_all(
+        passages = [
             EvidencePassage(
                 asset_version_id=version.id,
                 asset_id=version.asset_id,
@@ -49,13 +51,20 @@ def process_version(version_id: int) -> None:
                 char_count=len(chunk.text),
             )
             for index, chunk in enumerate(chunks)
-        )
+        ]
+        db.add_all(passages)
+        db.flush()
+
+        # FR-10 keyword index + FR-11 embeddings for the new passages.
+        index_note = indexer.index_passages(db, passages)
 
         version.page_count = max(
             (page.page_number for page in result.pages if page.page_number), default=0
         ) or None
         version.passage_count = len(chunks)
-        version.processing_note = result.warning
+        version.processing_note = " ".join(
+            part for part in (result.warning, index_note) if part
+        ) or None
         version.processing_status = "DONE"
         version.processing_error = None
         db.commit()

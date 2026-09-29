@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    BLOB,
     DateTime,
     ForeignKey,
     Index,
@@ -51,6 +52,11 @@ class EvidencePassage(Base):
     end_timestamp: Mapped[float | None] = mapped_column(nullable=True)
 
     char_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # FR-11 semantic search — float32 vector bytes plus the model that produced
+    # them, so a model change can be detected and the passages re-embedded.
+    embedding: Mapped[bytes | None] = mapped_column(BLOB, nullable=True)
+    embedding_model: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
 

@@ -4,7 +4,7 @@ import json
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, func, or_, select, text
 from sqlalchemy.orm import Session
 
 from ..config import ALLOWED_ACCESS_LEVELS, ALLOWED_ASSET_TYPES, MAX_UPLOAD_BYTES
@@ -274,6 +274,11 @@ def delete_asset(asset_id: int, db: Session = Depends(get_db)) -> None:
     if asset is None:
         raise HTTPException(status_code=404, detail="asset not found")
     storage.delete_asset_dir(asset.id)
+    # passage_fts has no foreign key, so its rows are cleared explicitly.
+    db.execute(
+        text("DELETE FROM passage_fts WHERE CAST(asset_id AS INTEGER) = :asset_id"),
+        {"asset_id": asset_id},
+    )
     db.delete(asset)
     db.commit()
 
