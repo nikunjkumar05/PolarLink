@@ -50,12 +50,15 @@ export default function Search() {
   }, [])
 
   useEffect(() => {
+    // Only arm the debounce when the text actually differs, otherwise loading
+    // is set true with no follow-up request and the banner never clears.
+    if (query === submitted) return
     const handle = window.setTimeout(() => {
-      setSubmitted(query)
       setLoading(true)
+      setSubmitted(query)
     }, 300)
     return () => window.clearTimeout(handle)
-  }, [query])
+  }, [query, submitted])
 
   const params = useMemo(() => {
     const base: SearchParams = { q: submitted, mode, limit: LIMIT }
@@ -101,7 +104,7 @@ export default function Search() {
 
   const activeCount = ALL_FACETS.reduce((sum, key) => sum + (filters[key] !== undefined ? 1 : 0), 0)
   const index = result?.index
-  const note = error ?? result?.note ?? null
+  const note = loading ? null : (error ?? result?.note ?? null)
 
   const facetOptions = (key: FacetKey): (string | number)[] => {
     if (!options) return []

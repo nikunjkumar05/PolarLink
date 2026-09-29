@@ -69,13 +69,16 @@ export default function Repository() {
   }, [])
 
   useEffect(() => {
+    // Arm the debounce only when the text differs, otherwise loading is set
+    // true with no follow-up request and the banner never clears.
+    if (query === debouncedQuery) return
     const handle = setTimeout(() => {
       setDebouncedQuery(query)
       setPage(1)
       setLoading(true)
     }, 300)
     return () => clearTimeout(handle)
-  }, [query])
+  }, [query, debouncedQuery])
 
   const params: ListParams = useMemo(() => {
     const base: ListParams = { q: debouncedQuery || undefined, page, page_size: PAGE_SIZE }
