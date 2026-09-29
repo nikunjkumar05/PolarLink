@@ -125,7 +125,7 @@ export default function AssetDetail() {
     <div className="detail">
       <div className="page-head">
         <div>
-          <Link className="crumb" to="/">
+          <Link className="crumb" to="/repository">
             ← Repository
           </Link>
           <h1>{asset.title}</h1>

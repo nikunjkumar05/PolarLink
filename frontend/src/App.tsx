@@ -1,4 +1,5 @@
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { Link, NavLink, Route, Routes } from 'react-router-dom'
+import Landing from './pages/Landing'
 import Repository from './pages/Repository'
 import Upload from './pages/Upload'
 import AssetDetail from './pages/AssetDetail'
@@ -8,17 +9,18 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
+        <Link className="brand" to="/">
           <span className="brand-mark" aria-hidden="true" />
-          <div>
+          <span>
             <strong>PolarLink</strong>
-            <span className="brand-sub">Knowledge Repository</span>
-          </div>
-        </div>
+            <span className="brand-sub">Evidence-linked polar knowledge</span>
+          </span>
+        </Link>
         <nav>
           <NavLink to="/" end>
-            Repository
+            Home
           </NavLink>
+          <NavLink to="/repository">Repository</NavLink>
           <NavLink to="/upload">Upload</NavLink>
           <NavLink to="/search">Search</NavLink>
         </nav>
@@ -26,7 +28,8 @@ export default function App() {
 
       <main className="page">
         <Routes>
-          <Route path="/" element={<Repository />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/repository" element={<Repository />} />
           <Route path="/upload" element={<Upload />} />
           <Route path="/search" element={<Search />} />
           <Route path="/assets/:id" element={<AssetDetail />} />

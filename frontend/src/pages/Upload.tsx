@@ -104,7 +104,7 @@ export default function Upload() {
             (FR-03, FR-04).
           </p>
         </div>
-        <Link className="btn" to="/">
+        <Link className="btn" to="/repository">
           Back to repository
         </Link>
       </div>
@@ -284,7 +284,7 @@ export default function Upload() {
         {error && <div className="banner error">{error}</div>}
 
         <div className="form-actions">
-          <Link className="btn" to="/">
+          <Link className="btn" to="/repository">
             Cancel
           </Link>
           <button className="btn primary" type="submit" disabled={!valid || submitting}>
