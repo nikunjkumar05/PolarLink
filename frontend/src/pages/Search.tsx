@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type { FilterOptions, SearchMode, SearchParams, SearchResponse } from '../types'
 
@@ -36,8 +36,10 @@ function resultLink(hit: SearchResponse['items'][number]) {
 }
 
 export default function Search() {
-  const [query, setQuery] = useState('')
-  const [submitted, setSubmitted] = useState('')
+  const [searchParams] = useSearchParams()
+  const initialQuery = searchParams.get('q') ?? ''
+  const [query, setQuery] = useState(initialQuery)
+  const [submitted, setSubmitted] = useState(initialQuery)
   const [mode, setMode] = useState<SearchMode>('hybrid')
   const [filters, setFilters] = useState<Partial<Record<FacetKey, string | number>>>({})
   const [options, setOptions] = useState<FilterOptions | null>(null)
