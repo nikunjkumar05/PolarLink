@@ -5,6 +5,7 @@ import type {
   AssetVersion,
   FilterOptions,
   ListParams,
+  PassageList,
 } from '../types'
 
 export class ApiError extends Error {
@@ -75,6 +76,21 @@ export const api = {
     }),
 
   deleteAsset: (id: number) => request<void>(`/api/assets/${id}`, { method: 'DELETE' }),
+
+  listPassages: (versionId: number, params: { q?: string; page_number?: number; page?: number; page_size?: number } = {}) => {
+    const search = new URLSearchParams()
+    if (params.q) search.set('q', params.q)
+    if (params.page_number) search.set('page_number', String(params.page_number))
+    if (params.page) search.set('page', String(params.page))
+    if (params.page_size) search.set('page_size', String(params.page_size))
+    const qs = search.toString()
+    return request<PassageList>(`/api/versions/${versionId}/passages${qs ? `?${qs}` : ''}`)
+  },
+
+  listPages: (versionId: number) => request<number[]>(`/api/versions/${versionId}/pages`),
+
+  reprocess: (versionId: number) =>
+    request<AssetVersion>(`/api/versions/${versionId}/reprocess`, { method: 'POST' }),
 
   downloadUrl: (assetId: number, versionId: number) =>
     `/api/assets/${assetId}/versions/${versionId}/download`,

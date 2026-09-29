@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type { Asset, AssetVersion } from '../types'
 import { formatDate, formatBytes, shortHash } from '../lib/format'
+import EvidencePanel from './EvidencePanel'
 
 function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -298,6 +299,8 @@ export default function AssetDetail() {
           </div>
         </section>
       </div>
+
+      <EvidencePanel assetId={asset.id} versions={versions} onChange={load} />
     </div>
   )
 }

@@ -19,6 +19,30 @@ export interface AssetVersion {
   uploaded_at: string
 }
 
+export type LocationType = 'PAGE' | 'TIMESTAMP' | 'TABLE' | 'TEXT'
+
+export interface EvidencePassage {
+  id: number
+  asset_version_id: number
+  asset_id: number
+  sequence_number: number
+  location_type: LocationType
+  content: string
+  page_number: number | null
+  start_offset: number | null
+  end_offset: number | null
+  char_count: number
+  created_at: string
+}
+
+export interface PassageList {
+  total: number
+  page: number
+  page_size: number
+  version: AssetVersion
+  items: EvidencePassage[]
+}
+
 export interface Asset {
   id: number
   title: string
