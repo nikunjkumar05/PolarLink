@@ -28,6 +28,7 @@ import seed  # noqa: E402  - sibling script, reuses its corpus and PDF writer
 
 ROOT = Path(__file__).resolve().parents[2]
 SAMPLE_PATH = ROOT / "demo" / "sample-upload.pdf"
+SAMPLE_V2_PATH = ROOT / "demo" / "sample-upload-v2.pdf"
 
 SAMPLE_UPLOAD: dict = {
     "filename": "maitri-aws-maintenance-log-2026.pdf",
@@ -58,6 +59,48 @@ SAMPLE_UPLOAD: dict = {
     ),
 }
 
+# The revised edition. Paragraphs 1 and 2 are deliberately rewritten and a new one
+# is appended, so a claim made against v1 is detected as a changed passage when
+# this file is uploaded as version 2 (FR-31 → FR-42).
+SAMPLE_UPLOAD_V2: dict = {
+    **SAMPLE_UPLOAD,
+    "filename": "maitri-aws-maintenance-log-2026-revised.pdf",
+    "body": seed.doc(
+        "The automatic weather station mast at Maitri was inspected on 14 January 2026. Ice loading on the "
+        "cross arms had increased since the previous visit, so every fastener was checked and the de-icing "
+        "sleeve around the anemometer was replaced. A second visit was made on 3 February 2026 after a wind "
+        "event shook the mast.",
+        "The anemometer was recalibrated against the reference cup anemometer carried by the field team. Readings "
+        "agreed within ELEVEN per cent across the full range, well outside the four per cent tolerance agreed at "
+        "calibration, so the instrument was flagged for replacement rather than accepted.",
+        "Power came from the solar array with the battery bank holding charge overnight. One panel had a thin "
+        "coating of settled snow, which was brushed off; no other fault was found on the mast during this visit.",
+        "Follow-up: the de-icing sleeve should be inspected again before the next winter season, since the same "
+        "component had to be replaced twice in the previous two years.",
+    ),
+}
+
+
+def ensure_users(base: str) -> list[dict]:
+    """FR-01 — create the demo accounts if the database has none yet."""
+    from seed import ensure_users as seed_users
+
+    return seed_users(base)
+
+
+
+
+
+def clear_editorial(base: str) -> int:
+    """Remove demo claims and articles so a recording starts from an empty desk.
+
+    Assets are deleted by the caller; articles and claims are not tied to an
+    asset, so --reset has to clear them explicitly.
+    """
+    from seed import clear_editorial as seed_clear
+
+    return seed_clear(base)
+
 
 def wait_for(base: str, asset_id: int, timeout: float = 60.0) -> dict:
     deadline = time.time() + timeout
@@ -83,10 +126,15 @@ def main() -> int:
         return 1
 
     if args.reset:
+        removed = clear_editorial(args.base)
         listing = requests.get(f"{args.base}/api/assets?page_size=100", timeout=30).json()
         for item in listing["items"]:
             requests.delete(f"{args.base}/api/assets/{item['id']}", timeout=30)
-        print(f"cleared {listing['total']} existing asset(s)")
+        print(f"cleared {listing['total']} asset(s) and {removed} claim/article record(s)")
+
+    users = ensure_users(args.base)
+    if users:
+        print(f"users {len(users)} demo account(s) ready")
 
     existing = {
         item["title"]
@@ -106,6 +154,8 @@ def main() -> int:
     SAMPLE_PATH.parent.mkdir(parents=True, exist_ok=True)
     SAMPLE_PATH.write_bytes(seed.make_pdf(SAMPLE_UPLOAD["body"]))
     print(f"sample {SAMPLE_PATH.relative_to(ROOT)}")
+    SAMPLE_V2_PATH.write_bytes(seed.make_pdf(SAMPLE_UPLOAD_V2["body"]))
+    print(f"sample {SAMPLE_V2_PATH.relative_to(ROOT)}  (the revised edition)")
 
     started = time.time()
     stats = requests.get(
