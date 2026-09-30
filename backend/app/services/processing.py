@@ -65,6 +65,17 @@ def process_version(version_id: int) -> None:
         version.processing_note = " ".join(
             part for part in (result.warning, index_note) if part
         ) or None
+
+        # FR-31 / FR-40 — when this is not the first version of the asset, compare
+        # it with its predecessor and flag any claim whose evidence just moved.
+        # Runs before DONE so a client that waits for DONE also waits for alerts.
+        if version.version_number > 1:
+            impact_note = assess_impact(db, version.id)
+            if impact_note:
+                version.processing_note = " ".join(
+                    part for part in (version.processing_note, impact_note) if part
+                )
+
         version.processing_status = "DONE"
         version.processing_error = None
         db.commit()
@@ -78,6 +89,78 @@ def process_version(version_id: int) -> None:
             db.commit()
     finally:
         db.close()
+
+
+def _passages_for(db, version_id: int) -> list[EvidencePassage]:
+    return list(
+        db.scalars(
+            select(EvidencePassage)
+            .where(EvidencePassage.asset_version_id == version_id)
+            .order_by(EvidencePassage.sequence_number)
+        ).all()
+    )
+
+
+def assess_impact(db, current_version_id: int) -> str | None:
+    """FR-31 — diff this version against the one before it and raise alerts.
+
+    Returns a short note for the version card, or None when nothing that a
+    claim depends on changed. Never raises: a failed impact assessment must
+    not turn a good upload into a failed one.
+    """
+    from . import diffing
+    from . import editorial
+
+    try:
+        current = db.get(AssetVersion, current_version_id)
+        if current is None:
+            return None
+
+        previous = db.scalar(
+            select(AssetVersion)
+            .where(
+                AssetVersion.asset_id == current.asset_id,
+                AssetVersion.version_number < current.version_number,
+                AssetVersion.processing_status == "DONE",
+            )
+            .order_by(AssetVersion.version_number.desc())
+            .limit(1)
+        )
+        if previous is None:
+            return None
+
+        diff = diffing.diff_passages(
+            _passages_for(db, previous.id), _passages_for(db, current.id)
+        )
+        asset = current.asset
+        alerts = editorial.apply_change(
+            db,
+            asset=asset,
+            previous_version=previous,
+            current_version=current,
+            diff=diff,
+        )
+        db.commit()
+
+        if not alerts:
+            if diff.changes:
+                return (
+                    f"Version {current.version_number} differs from version "
+                    f"{previous.version_number} ({diff.modified} edited, {diff.added} added, "
+                    f"{diff.removed} removed passages); no claim depended on the change."
+                )
+            return None
+
+        articles = len({alert.article_id for alert in alerts if alert.article_id})
+        claims = len({alert.claim_id for alert in alerts})
+        return (
+            f"Source changed: {claims} claim(s) in {articles} article(s) now need "
+            f"re-verification ({len(alerts)} alert(s) raised)."
+        )
+    except Exception:  # noqa: BLE001
+        log.exception("impact assessment failed for version %s", current_version_id)
+        db.rollback()
+        return None
 
 
 def has_active_processing(asset_id: int) -> bool:
