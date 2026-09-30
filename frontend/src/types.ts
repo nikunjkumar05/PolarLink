@@ -148,3 +148,148 @@ export interface SearchResponse {
   index: SearchIndex
   note: string | null
 }
+
+// ---------------------------------------------------------------- editorial
+
+export type Role = 'ADMIN' | 'EDITOR' | 'REVIEWER'
+
+export interface User {
+  id: number
+  email: string
+  name: string
+  role: Role
+}
+
+export interface LoginResponse {
+  access_token: string
+  token_type: string
+  expires_in: number
+  user: User
+}
+
+export type ClaimStatus = 'DRAFT' | 'SUPPORTED' | 'DISPUTED' | 'REJECTED' | 'STALE' | 'VERIFIED'
+
+export interface EvidenceRef {
+  id: number
+  passage_id: number
+  asset_id: number
+  asset_title: string
+  version_id: number
+  version_number: number
+  page_number: number | null
+  excerpt: string
+}
+
+export interface ClaimEvidenceLink {
+  id: number
+  relation: string
+  quote: string | null
+  evidence: EvidenceRef | null
+  passage_missing: boolean
+}
+
+export interface Claim {
+  id: number
+  text: string
+  topic: string | null
+  status: ClaimStatus
+  created_by_id: number | null
+  verified_at: string | null
+  created_at: string
+  updated_at: string
+  evidence_links: ClaimEvidenceLink[]
+}
+
+export interface ClaimList {
+  total: number
+  items: Claim[]
+}
+
+export interface ReviewEvent {
+  id: number
+  action: string
+  comment: string | null
+  from_status: string | null
+  to_status: string | null
+  actor_name: string | null
+  created_at: string
+}
+
+export type ArticleStatus = 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'PUBLISHED' | 'REJECTED'
+
+export interface ArticleSummary {
+  id: number
+  title: string
+  slug: string
+  status: ArticleStatus
+  summary: string | null
+  audience: string | null
+  author_id: number | null
+  author_name: string | null
+  generation_mode: string | null
+  needs_reverification: boolean
+  claim_count: number
+  open_alert_count: number
+  created_at: string
+  updated_at: string
+  published_at: string | null
+}
+
+export interface Article extends ArticleSummary {
+  body: string | null
+  generation_model: string | null
+  generation_note: string | null
+  claims: { position: number; claim: Claim }[]
+  open_alerts: number[]
+}
+
+export interface ArticleList {
+  total: number
+  items: ArticleSummary[]
+}
+
+export type AlertStatus = 'OPEN' | 'REVERIFIED' | 'ACKNOWLEDGED'
+
+export interface ImpactAlert {
+  id: number
+  article_id: number | null
+  article_title: string | null
+  claim_id: number
+  claim_text: string
+  asset_id: number
+  asset_title: string
+  previous_version_id: number
+  previous_version_number: number
+  current_version_id: number
+  current_version_number: number
+  previous_quote: string | null
+  current_quote: string | null
+  current_page_number: number | null
+  previous_passage_id: number | null
+  current_passage_id: number | null
+  change_kind: string
+  reason: string
+  status: AlertStatus
+  resolution_note: string | null
+  resolved_at: string | null
+  resolved_by_name: string | null
+  created_at: string
+}
+
+export interface AlertList {
+  total: number
+  open_total: number
+  items: ImpactAlert[]
+}
+
+export interface AlertPassage {
+  id: number
+  page_number: number | null
+  sequence_number: number
+  excerpt: string
+}
+
+export interface Capabilities {
+  llm_available: boolean
+  default_mode: string
+}
