@@ -1323,3 +1323,284 @@ textarea {
     flex-wrap: wrap;
   }
 }
+/* ---------------------------------------------- editorial: auth ---------- */
+.session {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.auth-card {
+  max-width: 34rem;
+}
+.auth-form {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1.25rem 0;
+}
+.account-list {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.account-list ul {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.account-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+}
+.account-row:hover {
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------- editorial: shared ----------- */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.page-head h1 {
+  margin: 0 0 0.35rem;
+}
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.field.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+.note-box,
+.warn-box,
+.error-box {
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius);
+  margin: 0.75rem 0;
+  font-size: 0.92rem;
+}
+.note-box {
+  background: var(--accent-soft);
+  border: 1px solid #cfe6ee;
+}
+.warn-box {
+  background: var(--warning-soft);
+  border: 1px solid #ecd9a4;
+  color: var(--warning);
+}
+.error-box {
+  background: var(--danger-soft);
+  border: 1px solid #f3c9c5;
+  color: var(--danger);
+}
+.warn {
+  color: var(--warning);
+}
+.chip.warn {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-color: #ecd9a4;
+}
+
+.pill.status-draft { background: var(--surface-2); color: var(--muted); }
+.pill.status-supported { background: var(--accent-soft); color: var(--accent-strong); }
+.pill.status-verified { background: var(--success-soft); color: var(--success); }
+.pill.status-stale { background: var(--warning-soft); color: var(--warning); }
+.pill.status-disputed,
+.pill.status-rejected { background: var(--danger-soft); color: var(--danger); }
+.pill.status-in_review { background: var(--accent-soft); color: var(--accent-strong); }
+.pill.status-approved { background: var(--success-soft); color: var(--success); }
+.pill.status-published { background: var(--accent-strong); color: #fff; }
+.pill.status-open { background: var(--warning-soft); color: var(--warning); }
+.pill.status-reverified { background: var(--success-soft); color: var(--success); }
+.pill.status-acknowledged { background: var(--surface-2); color: var(--muted); }
+
+.chip.relation-supports { background: var(--success-soft); color: var(--success); }
+.chip.relation-contradicts { background: var(--danger-soft); color: var(--danger); }
+
+/* ------------------------------------------- editorial: claims ---------- */
+.claim-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.claim-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 1rem 1.1rem;
+}
+.claim-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.claim-text {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+.evidence-block {
+  display: grid;
+  gap: 0.6rem;
+}
+.evidence-row {
+  border-left: 3px solid var(--accent-soft);
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.evidence-row.missing {
+  border-left-color: var(--danger);
+}
+.evidence-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.excerpt {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ------------------------------------------ editorial: builder ---------- */
+.builder {
+  margin: 1rem 0 1.5rem;
+}
+.builder-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+@media (max-width: 720px) {
+  .builder-grid { grid-template-columns: 1fr; }
+}
+.claim-picker {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  margin: 0.5rem 0 1rem;
+  padding-right: 0.25rem;
+}
+.pick-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+.pick-row.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ------------------------------------- editorial: article review -------- */
+.review-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 900px) {
+  .review-grid { grid-template-columns: 1fr; }
+}
+.body-preview p {
+  line-height: 1.65;
+  margin: 0 0 0.9rem;
+}
+.timeline {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+}
+.timeline li {
+  border-left: 2px solid var(--border);
+  padding-left: 0.75rem;
+}
+.timeline p { margin: 0.15rem 0 0; }
+
+/* -------------------------------------------- editorial: alerts --------- */
+.alert-card h3 {
+  margin: 0.25rem 0 0.4rem;
+  font-size: 1.05rem;
+}
+.diff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 0.85rem 0;
+}
+@media (max-width: 720px) {
+  .diff-grid { grid-template-columns: 1fr; }
+}
+.diff-col {
+  border-radius: var(--radius);
+  padding: 0.7rem 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.diff-col p { margin: 0.3rem 0 0; }
+.diff-col.before { background: var(--danger-soft); }
+.diff-col.after { background: var(--success-soft); }
+.candidate-list {
+  margin: 0.75rem 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+/* --------------------------------------- editorial: reader page --------- */
+.reader .lede {
+  font-size: 1.12rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.sources {
+  margin-top: 1.5rem;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 35, 48, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 50;
+}
+.modal {
+  max-width: 34rem;
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  box-shadow: var(--shadow);
+}
