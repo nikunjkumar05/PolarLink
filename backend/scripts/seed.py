@@ -14,8 +14,13 @@ import io
 import json
 import sys
 import time
+from pathlib import Path
 
 import requests
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from app.config import SEED_USERS  # noqa: E402
 
 DEFAULT_BASE = "http://127.0.0.1:8000"
 
@@ -335,6 +340,46 @@ def upload(base: str, document: dict, timeout: int = 30) -> dict:
     return response.json()
 
 
+def clear_editorial(base: str) -> int:
+    """Delete claims and articles so --reset leaves an empty editorial desk."""
+    headers = {"Authorization": f"Bearer {login(base, 'admin@ncpor.in', 'admin123')}"}
+    removed = 0
+    for article in requests.get(f"{base}/api/articles?limit=200", timeout=30).json()["items"]:
+        requests.delete(f"{base}/api/articles/{article['id']}", headers=headers, timeout=30)
+        removed += 1
+    for claim in requests.get(f"{base}/api/claims?limit=200", timeout=30).json()["items"]:
+        requests.delete(f"{base}/api/claims/{claim['id']}", headers=headers, timeout=30)
+        removed += 1
+    return removed
+
+
+def ensure_users(base: str) -> list[dict]:
+    """FR-01 — register the demo accounts once; they survive a --reset because
+    deleting assets does not touch users."""
+    created: list[dict] = []
+    for email, name, role, password in SEED_USERS:
+        response = requests.post(
+            f"{base}/api/auth/register",
+            json={"email": email, "name": name, "role": role, "password": password},
+            timeout=30,
+        )
+        if response.status_code == 201:
+            created.append(response.json())
+        elif response.status_code != 409:
+            raise RuntimeError(f"could not create {email}: {response.status_code} {response.text}")
+    return created
+
+
+def login(base: str, email: str, password: str) -> str:
+    response = requests.post(
+        f"{base}/api/auth/login",
+        json={"email": email, "password": password},
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+
 def wait_for(base: str, asset_id: int, timeout: float = 60.0) -> dict:
     deadline = time.time() + timeout
     while time.time() < deadline:
@@ -363,6 +408,11 @@ def main() -> int:
         for item in listing["items"]:
             requests.delete(f"{args.base}/api/assets/{item['id']}", timeout=30)
         print(f"cleared {listing['total']} existing asset(s)")
+        print(f"cleared {clear_editorial(args.base)} claim/article record(s)")
+
+    users = ensure_users(args.base)
+    if users:
+        print(f"users {len(users)} demo account(s) ready")
 
     existing = {
         item["title"]
