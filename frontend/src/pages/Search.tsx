@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { api, ApiError } from '../api/client'
-import type { FilterOptions, SearchMode, SearchParams, SearchResponse } from '../types'
+import { api, ApiError, getToken } from '../api/client'
+import { useAuth } from '../lib/useAuth'
+import type { FilterOptions, SearchHit, SearchMode, SearchParams, SearchResponse } from '../types'
 
 const LIMIT = 20
 
@@ -37,6 +38,12 @@ function resultLink(hit: SearchResponse['items'][number]) {
 
 export default function Search() {
   const [searchParams] = useSearchParams()
+  const { can } = useAuth()
+  const [claimTarget, setClaimTarget] = useState<SearchHit | null>(null)
+  const [claimText, setClaimText] = useState('')
+  const [claimTopic, setClaimTopic] = useState('')
+  const [claiming, setClaiming] = useState(false)
+  const [claimError, setClaimError] = useState<string | null>(null)
   const initialQuery = searchParams.get('q') ?? ''
   const [query, setQuery] = useState(initialQuery)
   const [submitted, setSubmitted] = useState(initialQuery)
@@ -123,6 +130,36 @@ export default function Search() {
         return options.topics
       case 'year':
         return options.years
+    }
+  }
+
+  function startClaim(hit: SearchHit) {
+    if (!getToken()) {
+      setClaimError('Sign in first — creating a claim needs an editor account.')
+      return
+    }
+    setClaimTarget(hit)
+    setClaimText('')
+    setClaimTopic(hit.asset.topic ?? '')
+    setClaimError(null)
+  }
+
+  async function submitClaim() {
+    if (!claimTarget) return
+    setClaiming(true)
+    setClaimError(null)
+    try {
+      await api.createClaim({
+        text: claimText.trim(),
+        topic: claimTopic.trim() || null,
+        evidence: [{ passage_id: claimTarget.passage.id, relation: 'SUPPORTS' }],
+      })
+      setClaimTarget(null)
+      setClaimText('')
+    } catch (err) {
+      setClaimError(err instanceof ApiError ? err.message : 'could not create the claim')
+    } finally {
+      setClaiming(false)
     }
   }
 
@@ -270,12 +307,59 @@ export default function Search() {
                   <Link className="btn small" to={resultLink(hit)}>
                     Open evidence
                   </Link>
+                  {can('EDITOR') && (
+                    <button className="btn small" onClick={() => startClaim(hit)}>
+                      Claim this passage
+                    </button>
+                  )}
                 </div>
               </li>
             ))}
           </ol>
         </section>
       </div>
+
+      {claimTarget && (
+        <div className="modal-backdrop" onClick={() => setClaimTarget(null)}>
+          <div className="modal panel" onClick={(event) => event.stopPropagation()}>
+            <h2>New claim</h2>
+            <p className="small muted">
+              Anchored to{' '}
+              <strong>{claimTarget.asset.title}</strong> — v{claimTarget.version.version_number}
+              {claimTarget.passage.page_number ? `, p.${claimTarget.passage.page_number}` : ''} · E
+              {claimTarget.passage.id}
+            </p>
+            <p className="excerpt">{claimTarget.passage.content.slice(0, 260)}…</p>
+
+            <label className="field">
+              <span>Claim</span>
+              <textarea
+                rows={3}
+                value={claimText}
+                onChange={(event) => setClaimText(event.target.value)}
+                placeholder="State one thing this passage proves."
+              />
+            </label>
+            <label className="field">
+              <span>Topic (optional)</span>
+              <input
+                value={claimTopic}
+                onChange={(event) => setClaimTopic(event.target.value)}
+                placeholder={claimTarget.asset.topic ?? 'Wildlife'}
+              />
+            </label>
+            {claimError && <p className="error-box">{claimError}</p>}
+            <div className="row-actions">
+              <button className="btn primary" disabled={claiming} onClick={submitClaim}>
+                {claiming ? 'Creating…' : 'Create claim'}
+              </button>
+              <button className="btn" onClick={() => setClaimTarget(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
