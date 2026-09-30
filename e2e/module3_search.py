@@ -117,20 +117,48 @@ check(
 )
 
 # ------------------------------------------------------------------ fusion
-fused = search(q="brine salinity ice core", mode="hybrid", limit=20)
+FUSION_QUERY = "brine salinity ice core"
+fused = search(q=FUSION_QUERY, mode="hybrid", limit=100)
+kw_fuse = search(q=FUSION_QUERY, mode="keyword", limit=100)
+sem_fuse = search(q=FUSION_QUERY, mode="semantic", limit=100)
 both = [i for i in fused["items"] if set(i["sources"]) >= {"keyword", "semantic"}]
 check("hybrid fuses passages found by both retrievers", len(both) > 0, f"{len(both)} fused")
 check(
     "hybrid result count >= each single leg",
-    fused["total"] >= max(
-        search(q="brine salinity ice core", mode="keyword", limit=20)["total"],
-        search(q="brine salinity ice core", mode="semantic", limit=20)["total"],
-    ),
+    fused["total"] >= max(kw_fuse["total"], sem_fuse["total"]),
     str(fused["total"]),
 )
+hybrid_ids = {i["passage"]["id"] for i in fused["items"]}
+check(
+    "hybrid keeps every passage either retriever found",
+    bool(hybrid_ids)
+    and {i["passage"]["id"] for i in kw_fuse["items"]} <= hybrid_ids
+    and {i["passage"]["id"] for i in sem_fuse["items"]} <= hybrid_ids,
+    f"{len(hybrid_ids)} fused ids / {kw_fuse['total']} kw / {sem_fuse['total']} sem",
+)
 top = fused["items"][0]
-check("top fused hit outranks its legs", top["keyword_rank"] is None or top["semantic_rank"] is None or True)
 check("fused hit exposes both leg scores", "keyword_score" in top and "semantic_score" in top)
+
+
+def rrf_sum(hit):
+    """Recompute the fused score from the reported per-leg ranks (k = 60)."""
+    total = 0.0
+    for rank in (hit.get("keyword_rank"), hit.get("semantic_rank")):
+        if rank is not None:
+            total += 1.0 / (60 + rank)
+    return total
+
+
+offenders = [
+    i["rank"]
+    for i in fused["items"]
+    if abs(i["score"] - rrf_sum(i)) > 1e-6  # the API rounds to 6 decimals
+]
+check(
+    "fused score is exactly sum(1/(60+rank)) over both legs",
+    bool(fused["items"]) and not offenders,
+    f"ranks off: {offenders}" if offenders else f"{len(fused['items'])} hits verified",
+)
 
 # ------------------------------------------------------------------ filters
 def titles(params):
@@ -204,14 +232,23 @@ check(
 )
 
 # ------------------------------------------------------------------ frontend
-for module in ("/src/pages/Search.tsx", "/src/App.tsx", "/src/api/client.ts"):
+def module_body(path):
     try:
-        with urllib.request.urlopen(FRONT + module, timeout=30) as res:
-            body = res.read().decode("utf-8", "replace")
-        ok = res.status == 200 and "transform" in body.lower() or res.status == 200
+        with urllib.request.urlopen(FRONT + path, timeout=30) as res:
+            return res.status, res.headers.get("Content-Type", ""), res.read().decode("utf-8", "replace")
     except Exception as exc:  # noqa: BLE001
-        ok, body = False, str(exc)
-    check(f"vite serves {module}", ok)
+        return 0, "", str(exc)
+
+
+for module in ("/src/pages/Search.tsx", "/src/App.tsx", "/src/api/client.ts"):
+    status, ctype, body = module_body(module)
+    transformed = "sourceMappingURL" in body  # appended by the Vite transform pipeline
+    jsx_compiled = "jsxDEV" in body if module.endswith(".tsx") else True
+    check(
+        f"vite compiles {module} to javascript",
+        status == 200 and "javascript" in ctype and transformed and jsx_compiled,
+        f"{status} {ctype} len={len(body)}",
+    )
 
 with urllib.request.urlopen(FRONT + "/src/App.tsx", timeout=30) as res:
     app_tsx = res.read().decode("utf-8", "replace")
