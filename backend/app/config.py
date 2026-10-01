@@ -9,6 +9,14 @@ STORAGE_DIR = Path(os.environ.get("POLARLINK_STORAGE_DIR", BACKEND_DIR / "storag
 DB_PATH = DATA_DIR / "polarlink.db"
 DATABASE_URL = os.environ.get("POLARLINK_DATABASE_URL", f"sqlite:///{DB_PATH}")
 
+# Dev origins plus anything listed in POLARLINK_CORS_ORIGINS (comma-separated).
+# A deployment behind a reverse proxy that serves the SPA from the same origin
+# does not need CORS at all — these only matter when the API is called cross-origin.
+CORS_ORIGINS = [
+    *("http://localhost:5173", "http://127.0.0.1:5173"),
+    *(origin.strip() for origin in os.environ.get("POLARLINK_CORS_ORIGINS", "").split(",") if origin.strip()),
+]
+
 ALLOWED_ASSET_TYPES = ("PDF", "IMAGE", "VIDEO", "DATASET", "ACTIVITY", "OTHER")
 ALLOWED_ACCESS_LEVELS = ("PUBLIC", "INTERNAL", "RESTRICTED")
 ALLOWED_PROCESSING_STATUSES = ("PENDING", "PROCESSING", "DONE", "FAILED")

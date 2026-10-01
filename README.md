@@ -89,6 +89,58 @@ Without `--reset` the script only tops up missing documents.
 
 ---
 
+## Deployment (Docker)
+
+One compose stack: nginx serves the built SPA and reverse-proxies `/api` to the
+FastAPI container. Everything runs on a single node — SQLite, the uploaded-file
+volume and the ONNX embedding model are all local.
+
+**Prerequisites:** Docker with Compose v2.
+
+```powershell
+copy .env.example .env
+# put a real key in POLARLINK_JWT_SECRET (see .env.example for generators)
+
+docker compose up -d --build
+```
+
+Open **<http://localhost:8080>**. The `seed` service runs once after the API is
+healthy and loads the seven-document corpus; it is idempotent, so later `up`
+runs only top up missing documents.
+
+| Service | Purpose |
+| --- | --- |
+| `web` | nginx on `${POLARLINK_PORT:-8080}` — SPA + `/api` proxy + `client_max_body_size 210m` |
+| `api` | uvicorn, one worker (SQLite), internal port 8000 only |
+| `seed` | one-shot `scripts/demo.py` against the API, exits 0 |
+
+### Notes
+
+- **The embedding model is baked into the image** (`FASTEMBED_CACHE_PATH`), so
+  the first search does not download anything and the stack works behind a
+  firewall. Rebuilds only re-fetch it if the base image or requirements change.
+- **Data survives restarts** in the `polarlink-data` and `polarlink-storage`
+  volumes. `docker compose down -v` deletes the database and the stored files.
+- **Workers stay at 1** — background processing writes to SQLite and is not
+  designed for multiple processes.
+- **Logs:** `docker compose logs -f api`, `docker compose logs -f seed`.
+- **Restart / stop:** `docker compose restart api`, `docker compose down`.
+- **Take it offline:** the API and SPA need no outbound network at runtime; only
+  `docker compose build` does.
+- **Drop the seeding:** delete the `seed` service from `docker-compose.yml`, or
+  simply `docker compose run --rm seed` when you want the corpus back.
+- The demo accounts (`admin@ncpor.in` / `admin123`, …) are seeded by that
+  service — change or remove them before exposing the stack publicly.
+
+### Behind a reverse proxy / TLS
+
+nginx here listens on HTTP. Terminate TLS in front of it (a cloud load
+balancer, or a host nginx/caddy on 443 proxying to `localhost:8080`), then set
+`POLARLINK_CORS_ORIGINS` only if the SPA will be served from a different origin
+than the API. Same-origin behind this stack needs no CORS at all.
+
+---
+
 ## Demo walkthrough
 
 Each beat maps to an acceptance criterion.
@@ -265,6 +317,7 @@ All endpoints are under `/api`.
 ```
 PolarLink/
 ├── backend/
+│   ├── Dockerfile         # production API image
 │   ├── app/
 │   │   ├── api/            # assets, evidence, search, auth, claims, articles, alerts
 │   │   ├── models/         # Asset, AssetVersion, EvidencePassage, Claim, Article, ImpactAlert, User
@@ -282,6 +335,7 @@ PolarLink/
 │   ├── requirements.txt
 │   └── data/ storage/      # created at runtime (gitignored)
 ├── frontend/
+│   ├── Dockerfile         # vite build → nginx
 │   └── src/
 │       ├── pages/          # Landing, Repository, Upload, AssetDetail, EvidencePanel,
 │       │                   # Search, Login, Claims, Articles, ArticleDetail, Alerts, PublicArticle
@@ -290,6 +344,9 @@ PolarLink/
 │       ├── types.ts        # shared API types
 │       └── index.css       # design tokens + components
 ├── e2e/                    # end-to-end suites (13 + 28 + 52 checks)
+├── deploy/nginx.conf       # SPA fallback + /api reverse proxy
+├── docker-compose.yml      # web + api + one-shot seed
+├── .env.example            # copy to .env — set POLARLINK_JWT_SECRET
 ├── demo/sample-upload.pdf  # fresh document for the upload beat
 ├── Requirement Engineering and Domain Modeling — SIH26063.md
 ├── SIH26063_Novelty_and_Differentiation_Document.docx
@@ -333,6 +390,7 @@ npm run build     # tsc -b && vite build
 | `POLARLINK_DATABASE_URL` | `sqlite:///backend/data/polarlink.db` | any SQLAlchemy URL (Postgres when scaling) |
 | `POLARLINK_JWT_SECRET` | `polarlink-dev-secret-change-me` | token signing key — **set this in any real deployment** |
 | `POLARLINK_JWT_TTL` | `43200` | session lifetime in seconds |
+| `POLARLINK_CORS_ORIGINS` | unset | extra comma-separated origins allowed to call the API cross-origin |
 | `POLARLINK_LLM_KEY` | unset | enables LLM drafting; without it articles are composed extractively |
 | `POLARLINK_LLM_BASE_URL` | `https://api.openai.com/v1` | any OpenAI-compatible endpoint |
 | `POLARLINK_LLM_MODEL` | `gpt-4o-mini` | model id used for drafting |

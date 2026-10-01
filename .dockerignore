@@ -1,0 +1,32 @@
+# Build context hygiene — one .dockerignore at the context root (the repo root)
+# covers both the backend and frontend Dockerfiles.
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Runtime state
+backend/data/
+backend/storage/
+
+# Node
+node_modules/
+frontend/dist/
+.vite/
+
+# Git and docs
+.git/
+*.md
+*.docx
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Compose secrets
+.env
+.env.*

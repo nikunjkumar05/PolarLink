@@ -1,0 +1,62 @@
+name: polarlink
+
+x-api-image: &api-image
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+
+x-api-environment: &api-environment
+  POLARLINK_JWT_SECRET: ${POLARLINK_JWT_SECRET:?set POLARLINK_JWT_SECRET in .env}
+  POLARLINK_JWT_TTL: ${POLARLINK_JWT_TTL:-43200}
+  POLARLINK_CORS_ORIGINS: ${POLARLINK_CORS_ORIGINS:-}
+  POLARLINK_LLM_KEY: ${POLARLINK_LLM_KEY:-}
+  POLARLINK_LLM_BASE_URL: ${POLARLINK_LLM_BASE_URL:-https://api.openai.com/v1}
+  POLARLINK_LLM_MODEL: ${POLARLINK_LLM_MODEL:-gpt-4o-mini}
+
+x-api-volumes: &api-volumes
+  - polarlink-data:/var/lib/polarlink/data
+  - polarlink-storage:/var/lib/polarlink/storage
+
+services:
+  api:
+    <<: *api-image
+    image: polarlink-api:latest
+    environment:
+      <<: *api-environment
+    volumes: *api-volumes
+    restart: unless-stopped
+    # Port kept on the internal network only — nginx is the public entry point.
+    expose:
+      - "8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: polarlink-web:latest
+    ports:
+      - "${POLARLINK_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Idempotent: tops up missing demo documents on every `up`. Delete the service
+  # (or run `docker compose up -d --no-deps web`) once you have real content.
+  seed:
+    <<: *api-image
+    image: polarlink-api:latest
+    environment:
+      <<: *api-environment
+    command: ["python", "scripts/demo.py", "--base", "http://api:8000"]
+    # demo.py writes the walkthrough PDFs back into the repo's demo/ folder.
+    volumes:
+      - ./demo:/srv/polarlink/demo
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  polarlink-data:
+  polarlink-storage:

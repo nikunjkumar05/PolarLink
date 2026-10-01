@@ -8,6 +8,10 @@ __pycache__/
 backend/data/
 backend/storage/
 
+# Deployment secrets
+.env
+.env.local
+
 # Node
 node_modules/
 dist/
